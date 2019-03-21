@@ -1,0 +1,60 @@
+{
+    "compilerOptions": {
+        "target": "esnext",
+        "module": "esnext",
+        "strict": true,
+        "jsx": "preserve",
+        "importHelpers": true,
+        "moduleResolution": "node",
+        "experimentalDecorators": true,
+        "esModuleInterop": true,
+        "allowSyntheticDefaultImports": true,
+        "sourceMap": true,
+        "allowJs": true,
+        "baseUrl": ".",
+        "types": [
+            "webpack-env"
+        ],
+        "typeRoots": [
+            "./types",
+            "./node_modules/vue/types",
+            "./node_modules/cookies-js/dist"
+        ],
+        "paths": {
+            "@/*": [
+                "src/*"
+            ],
+            "@components/*": [
+                "src/components/*"
+            ],
+            "@static/*": [
+                "src/static/*"
+            ],
+            "@utils/*": [
+                "src/utils/*"
+            ],
+            "@views/*": [
+                "src/views/*"
+            ],
+            "@interface/*": [
+                "src/interface/*"
+            ],
+        },
+        "lib": [
+            "esnext",
+            "dom",
+            "dom.iterable",
+            "scripthost"
+        ]
+    },
+    "include": [
+        "src/**/*.ts",
+        "src/**/*.tsx",
+        "src/**/*.vue",
+        "tests/**/*.ts",
+        "tests/**/*.tsx", "src/utils/methods.js", "src/utils/methods.js"
+    ],
+    "exclude": [
+        "node_modules"
+    ]
+}
