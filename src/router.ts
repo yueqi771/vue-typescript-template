@@ -9,20 +9,24 @@ export default new Router({
 	base: process.env.BASE_URL,
 	routes: [
 		{
-			path: '/',
-			name: 'home',
-			component: Home
-		},
-		{
-			path: '/about',
-			name: 'about',
-			component: () => import('./views/About.vue')
-		},
+            path: '/',
+            redirect: '/preview',
+        },
 		{
 			path: '/preview',
 			name: 'preview',
-			component: () => import('./views/Preview.vue')
+			component: () => import('./views/Preview.vue'),
+			children: [
+                {
+                    path: '/preview',
+                    redirect: '/preview/page',
+                },
+                {
+                    path: '/preview/:path',
+                    component: () => import('./views/Preview.vue'),
+                },
+            ]
 		},
-		
+
 	]
 })

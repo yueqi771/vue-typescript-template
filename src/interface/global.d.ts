@@ -7,3 +7,8 @@ declare namespace store {
   let set: any;
   let remove: any;
 }
+
+declare var window: Window;
+interface Window {
+	vm: any
+}

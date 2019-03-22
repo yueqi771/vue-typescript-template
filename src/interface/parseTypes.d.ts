@@ -1,7 +1,8 @@
 interface AttrList {
     class?: string;
     props?: object;
-    on?: object;
+	on?: object;
+	attrs: any,
 }
 
 
