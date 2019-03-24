@@ -10,5 +10,7 @@ declare namespace store {
 
 declare var window: Window;
 interface Window {
-	vm: any
+  vm: any,
+  session: any,
+  $parse: any;
 }

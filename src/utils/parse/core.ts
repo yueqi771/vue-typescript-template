@@ -1,6 +1,8 @@
 import Widgets from './widgets'
 import { AstData, NodeData, ParamData } from '@interface/parseTypes.d.ts';
-import defaultData from './defaultData'
+import defaultData from './data/defaultData'
+import Methods from '../methods.js'
+import router from '../../router'
 
 class Parse extends Widgets{
     // 转化后vue能识别的ast树结构
@@ -21,9 +23,10 @@ class Parse extends Widgets{
 	// 缓存渲染方法
     public component: any = null;
 
-    constructor() {
+    constructor(ast: AstData[], targetRouter?: string) {
         super();
-		this.initRouter(this.ast, 'preview');
+
+        this.initRouter(ast, router, targetRouter);
 	}
 
 	/**
@@ -31,12 +34,12 @@ class Parse extends Widgets{
      * @param  ast: asta组件树json
 	 * @param  targetRoute: 需要插入的路由位置, 如果为空，那么插入到根路由下面 如 ‘/preveiw‘
      */
-	initRouter(ast: AstData[], targetRoute?: string): void {
-		const $router = window.vm.$router;
+	initRouter(ast: AstData[], router: any, targetRoute?: string): void {
+		const $router = router;
 		const totalRouter = $router.options.routes;
 		// 缓存当前已经存在的路由路经，
 		let routerArray: string[] = [],
-			routerLevel: number = [];
+			routerLevel: any = [];
 
 		// 如果不存在路由位置， 那么插入到根路由下
 		if(targetRoute) {
@@ -89,7 +92,8 @@ class Parse extends Widgets{
 		// 获取当前页面的路由
 		const windowHref = window.location.href;
         const domain = window.location.host;
-		const currentRoute = windowHref.split(`${window.location.protocol}//${domain}`)[1];
+        const currentRoute = windowHref.split(`${window.location.protocol}//${domain}`)[1];
+        const vmData = window.vm.$children[0]._data
 
 		// 仅保留跟当前页面路由匹配的ast数据
 		let i = this.astCache.length;
@@ -104,9 +108,52 @@ class Parse extends Widgets{
 
 		// 执行转化ast树方法
 		this.initDirective(this.node);
-		this.codegen(this.node);
-		this.component = this.render();
-	}
+        this.codegen(this.node);
+        vmData.time = new Date().getTime();
+        this.component = this.render();
+    }
+    
+    /**
+     * @func   初始化页面，调用渲染函数，重新渲染页面
+     * @param  ast: asta组件树json
+     */
+    initApiData(ast: AstData) {
+        const _this = this;
+        const dataInterface = ast.dataInterface || null;
+        const params = dataInterface ? this.formatParams(dataInterface.params) : {};
+
+        if (ast && ast.page && ast.dataInterface) {
+            (window as any).$http[dataInterface.type]({
+                url: dataInterface.url,
+                params,
+            }).then((res: any) => {
+                if(res.code === 10000) {
+                    window.vm._data.apiData = {};
+                    let apiData = res.data;
+
+                    // 如果返回值是一个对象，那么向根实例的对象上进行合并
+                    if(this.TypeContent.isArray(res.data)) {
+                        apiData = {
+                            list: res.data
+                        } 
+                    }
+
+                    Object.assign(window.vm._data.apiData, apiData);
+
+                    
+		            this.ast[0].node[0].text = res.data[0].name; 
+
+                    // 刷新页面
+                    this.initPage(this.ast)
+                }
+            }).catch(() => {
+                // alert('网络异常');
+            });
+        }else {
+            console.log('缺少必要的参数')
+        }
+
+    }
 
 	/**
      * @func 转化方法参数
@@ -114,14 +161,14 @@ class Parse extends Widgets{
      * @return 处理后的参数
      */
     formatParams(data: ParamData[]): any {
-        const result = {};
+        const result: any = {};
 
         data.forEach((item: ParamData, index: number) => {
             switch(item.type) {
-                case 'function':
+                case "function":
                     result[item.key] = eval(item.value);
                     break;
-                case 'string':
+                case "string":
                     result[item.key] = item.value;
 					break;
                 default:
@@ -141,7 +188,7 @@ class Parse extends Widgets{
             if(item.directiveList && item.directiveList.length > 0) {
 
                 // debugger;
-                let children = [];
+                let children: any[] = [];
                 item.directiveList.forEach((directiveItem: any, directiveIndex: number) => {
                     if(directiveItem.type === 'for') {
                         let data = directiveItem.data ? eval(directiveItem.data) : [];
@@ -183,7 +230,6 @@ class Parse extends Widgets{
 
                 this.parentNode.children = this.parentNode.children.concat(children);
 
-
             }
 
             // 如果当前项存在一个children， 那么递归的执行这个方法
@@ -215,7 +261,7 @@ class Parse extends Widgets{
 			/* 注： 此处有坑： 例如import(foo)，这样完全动态的加载方式将会失败，因为webpack需要一些文件位置信息。*/
             /* 因为变量foo可能是系统或项目中任何文件的路径。import()必须至少包含关于模块所在位置的一些信息，因此让捆绑可以局限于特定的目录或文件夹。*/
             if (this.TypeContent.isString(currentTag) && reg.test(currentTag)) {
-                问题， 如果没有复制这个变量， 那么会导致后面的无法复制成功
+                // 问题， 如果没有复制这个变量， 那么会导致后面的无法复制成功
                 const result = reg.test(currentTag);
                 item.tag = () => import(`@components/${currentTag}`);
 
@@ -230,7 +276,7 @@ class Parse extends Widgets{
                 item.eventList.forEach((etem: any) => {
                     // 如果参数存在， 那么绑定参数
                     let params = etem.params ? this.formatParams(etem.params) : {};
-                    eventObject[etem.type] = Methods[etem.handle].bind(vm, params);
+                    eventObject[etem.type] = Methods[etem.handle].bind(window.vm, params);
                 });
 
                 // 将事件绑定到当前组件上
@@ -245,7 +291,7 @@ class Parse extends Widgets{
                 item.dataInfo.forEach((dataItem: any, dataIndex: number) => {
                     // 验证数据是否存在
                     if(dataItem.type === 'vm') {
-                        if(!vm._data.apiData || !vm._data.apiData[dataItem.key]) {
+                        if(!window.vm._data.apiData || !window.vm._data.apiData[dataItem.key]) {
                             console.log(`${item.tag}需要绑定的数据不存在！`);
                             return;
                         }
@@ -256,9 +302,9 @@ class Parse extends Widgets{
                         }
 
                         if(nativeAttr.indexOf(dataItem.to) > -1) {
-                            item.attrList.attrs[dataItem.to] = vm._data.apiData[dataItem.key];
+                            item.attrList.attrs[dataItem.to] = window.vm._data.apiData[dataItem.key];
                         }else{
-                            item.attrList.props[dataItem.to] = vm._data.apiData[dataItem.key];
+                            item.attrList.props[dataItem.to] = window.vm._data.apiData[dataItem.key];
                         }
 
                         return;
@@ -295,7 +341,9 @@ class Parse extends Widgets{
                 return;
             }
 
-		})
+        })
+        
+
 	}
 
     /**
@@ -321,21 +369,55 @@ class Parse extends Widgets{
     }
 
     /**
+     * @func   组件创建完成之后执行的函数钩子
+     * @params 组件的生命周期
+     */
+    callHook(lifecircle: string): void {
+        // 组件创建完成， 执行create方法
+        if(lifecircle === 'created') {
+            // 请求页面的数据
+            this.initApiData(this.ast[0]);
+        }
+    }
+
+    /**
      * @func 将ast树转化为vue对象
      * @return vue对象实例
      */
     render(): any {
-        const nodeData = this.deepClone(this.node);
-
+        const _this = this;
         /* eslint-disable */
         return {
+            data() {
+                return {
+                    currentRoute: '',
+                    update: 0,
+                }
+            },
+            watch: {
+                $route() {
+                    /* tslint-disable */
+                    this.currentRoute = this.$route.params.path; 
+                    _this.initPage(this.currentRoute);
+                },
+                update() {
+                    console.log('重新刷新页面')
+                    this.$forceUpdate()
+                }
+
+            },
             render: (createElement: Vue.CreateElement, context: any) => {
                 return createElement('div', {},
                     [
-                       this.optimize(nodeData, createElement),
+                       this.optimize(this.node, createElement),
                     ],
                 );
             },
+
+            created() {
+                // 组件创建完成之后发送ajax
+                _this.callHook('created');
+            }
         }
     }
 

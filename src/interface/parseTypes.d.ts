@@ -11,6 +11,7 @@ interface AstData {
     path: string;
     node: NodeData[];
     id?: string;
+    dataInterface: any;
 }
 
 interface NodeData {

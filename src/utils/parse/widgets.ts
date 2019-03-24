@@ -46,6 +46,20 @@ class Widgets {
         return newObject;
     }
 
+    /**
+     * @func   工具方法：生成一个随机的id
+     * @return 一个随机的字符串id
+     */
+    guid (): string { 
+        function s4() {
+            return Math.floor((1 + Math.random()) * 0x10000)
+                .toString(16)
+                .substring(1);
+        }
+        return s4() + s4() + '-' + s4()
+    }
+
+
 }
 
 export default Widgets
